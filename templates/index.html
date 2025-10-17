@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Meeting Summarizer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #111827; /* Dark Slate Blue */
+            --surface-color: #1F2937; /* Lighter Slate Blue */
+            --primary-color: #6366F1; /* Indigo */
+            --primary-hover: #4F46E5; /* Darker Indigo */
+            --text-primary: #F9FAFB; /* Almost White */
+            --text-secondary: #9CA3AF; /* Muted Gray */
+            --border-color: #374151; /* Gray */
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 40px auto;
+            background-color: var(--surface-color);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 0 40px rgba(99, 102, 241, 0.1);
+            animation: slideInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            overflow: hidden; /* To contain children animations */
+        }
+
+        .header {
+            text-align: center;
+            padding: 40px 40px 30px 40px;
+        }
+
+        .header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-top: 8px;
+        }
+
+        .upload-form {
+            padding: 0 40px 40px 40px;
+        }
+
+        #file-upload-label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        #file-upload-label:hover {
+            border-color: var(--primary-color);
+            background-color: rgba(99, 102, 241, 0.05);
+        }
+        
+        #file-upload-label span {
+            font-weight: 500;
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+        
+        #file-upload-label span::before {
+            content: '🚀';
+            display: block;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        #audio_file {
+            display: none;
+        }
+        
+        #file-name {
+            margin-top: 15px;
+            font-weight: 500;
+            color: var(--primary-color);
+            text-align: center;
+            height: 20px;
+        }
+
+        .submit-button {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+            width: 100%;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.2);
+            animation: pulse 2s infinite;
+        }
+        
+        .submit-button:hover {
+            background: var(--primary-hover);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.3);
+            animation: none;
+        }
+
+        .loader-container {
+            text-align: center;
+            padding: 20px;
+            display: none; /* Hidden by default */
+        }
+        
+        /* New Loader Animation: Pulsing Dots */
+        .dot-pulse {
+            position: relative;
+            left: -9999px;
+            width: 10px;
+            height: 10px;
+            border-radius: 5px;
+            background-color: var(--primary-color);
+            color: var(--primary-color);
+            box-shadow: 9999px 0 0 -5px;
+            animation: dot-pulse 1.5s infinite linear;
+            animation-delay: .25s;
+            margin: 20px auto;
+        }
+        .dot-pulse::before, .dot-pulse::after {
+            content: '';
+            display: inline-block;
+            position: absolute;
+            top: 0;
+            width: 10px;
+            height: 10px;
+            border-radius: 5px;
+            background-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+        .dot-pulse::before {
+            box-shadow: 9984px 0 0 -5px;
+            animation: dot-pulse-before 1.5s infinite linear;
+            animation-delay: 0s;
+        }
+        .dot-pulse::after {
+            box-shadow: 10014px 0 0 -5px;
+            animation: dot-pulse-after 1.5s infinite linear;
+            animation-delay: .5s;
+        }
+        
+        .loader-container p {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .results {
+            padding: 0 40px 40px 40px;
+            animation: fadeIn 0.5s 0.2s ease-in-out backwards;
+        }
+
+        .results h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .result-box {
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+
+        .result-box h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: var(--text-primary);
+            font-size: 1.3rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+
+        .result-box h3::before {
+            margin-right: 10px;
+            font-size: 1.5rem;
+        }
+
+        /* Icons for result boxes */
+        .result-box.summary h3::before {
+            content: '✨';
+        }
+        .result-box.transcript h3::before {
+            content: '📜';
+        }
+
+        .result-box p {
+            white-space: pre-wrap;
+            font-size: 1rem;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        /* --- Keyframe Animations --- */
+        @keyframes slideInUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 4px 15px rgba(99, 102, 241, 0.2); }
+            50% { box-shadow: 0 4px 25px rgba(99, 102, 241, 0.4); }
+            100% { box-shadow: 0 4px 15px rgba(99, 102, 241, 0.2); }
+        }
+        @keyframes dot-pulse-before {
+            0% { box-shadow: 9984px 0 0 -5px; }
+            30% { box-shadow: 9984px 0 0 2px; }
+            60%, 100% { box-shadow: 9984px 0 0 -5px; }
+        }
+        @keyframes dot-pulse {
+            0% { box-shadow: 9999px 0 0 -5px; }
+            30% { box-shadow: 9999px 0 0 2px; }
+            60%, 100% { box-shadow: 9999px 0 0 -5px; }
+        }
+        @keyframes dot-pulse-after {
+            0% { box-shadow: 10014px 0 0 -5px; }
+            30% { box-shadow: 10014px 0 0 2px; }
+            60%, 100% { box-shadow: 10014px 0 0 -5px; }
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>AI Meeting Summarizer</h1>
+            <p>Transform your meeting audio into clear summaries and transcripts.</p>
+        </div>
+
+        <form id="upload-form" method="post" enctype="multipart/form-data" class="upload-form">
+            <label for="audio_file" id="file-upload-label">
+                <span>Drop your audio file here, or click to browse</span>
+            </label>
+            <input type="file" name="audio_file" id="audio_file" accept="audio/*" required>
+            <p id="file-name"></p>
+            
+            <button type="submit" id="submit-btn" class="submit-button">Generate Summary</button>
+        </form>
+
+        <div id="loader" class="loader-container">
+            <div class="dot-pulse"></div>
+            <p>Analyzing audio... The AI is hard at work.</p>
+        </div>
+
+        {% if transcript or summary %}
+        <div class="results">
+            <h2>Analysis Complete</h2>
+            {% if summary %}
+            <div class="result-box summary">
+                <h3>Summary</h3>
+                <p>{{ summary }}</p>
+            </div>
+            {% endif %}
+
+            {% if transcript %}
+            <div class="result-box transcript">
+                <h3>Full Transcript</h3>
+                <p>{{ transcript }}</p>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        const uploadForm = document.getElementById('upload-form');
+        const fileInput = document.getElementById('audio_file');
+        const fileNameDisplay = document.getElementById('file-name');
+        const submitButton = document.getElementById('submit-btn');
+        const loader = document.getElementById('loader');
+        const uploadFormContainer = document.querySelector('.upload-form');
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                fileNameDisplay.textContent = `${fileInput.files[0].name}`;
+            } else {
+                fileNameDisplay.textContent = '';
+            }
+        });
+
+        uploadForm.addEventListener('submit', (e) => {
+            if (fileInput.files.length > 0) {
+                uploadFormContainer.style.display = 'none';
+                loader.style.display = 'block';
+            } else {
+                e.preventDefault(); // Prevent submission if no file is selected
+            }
+        });
+    </script>
+</body>
+</html>
